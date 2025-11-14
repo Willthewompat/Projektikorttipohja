@@ -1,0 +1,184 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Project Card Generator</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <h1>Project Card Generator</h1>
+
+    <div class="form-container">
+        <!-- Project name input -->
+        <input type="text" id="projectName" placeholder="Project Name">
+
+        <!-- Description textarea -->
+        <textarea id="description" placeholder="Project Description"></textarea>
+
+        <!-- Timeframe input (in weeks) -->
+        <input type="number" id="timeframe" placeholder="Timeframe (weeks)">
+
+        <!-- Task list textarea -->
+        <textarea id="tasklist" placeholder="Enter tasks (press Enter for new task)"></textarea>
+
+        <!-- Roles editor with Add Role button -->
+        <div id="rolesEditor">
+            <h3>Roles & Time Estimates:</h3>
+            <div id="roleRows"></div>
+            <button id="addRoleBtn">Add Role</button>
+        </div>
+
+        <!-- Contact info textarea (multi-line) -->
+        <textarea id="contact" placeholder="Contact info (e.g., Discord, email, phone)"></textarea>
+
+        <!-- Color pickers -->
+        <label>Background Color: <input type="color" id="bgColor" value="#ffffff"></label>
+        <label>Text Color: <input type="color" id="textColor" value="#000000"></label>
+
+        <!-- Download button -->
+        <button id="downloadBtn">Download as PNG</button>
+    </div>
+
+    <!-- Card preview -->
+    <div id="card" class="card">
+        <h2 id="cardName">Project Name</h2>
+        <p id="cardDescription">Description goes here...</p>
+        <div id="cardTimeframeContainer">
+            <h3>Timeframe:</h3>
+            <p id="cardTimeframe">Not specified</p>
+        </div>
+        <h3>Tasks:</h3>
+        <ol id="cardTasks"></ol>
+        <div id="cardRolesContainer">
+            <h3>Roles & Time Estimates:</h3>
+            <div id="cardRoles"></div>
+        </div>
+        <div id="cardContactContainer">
+            <h3>Contact:</h3>
+            <p id="cardContact">Your contact info here...</p>
+        </div>
+    </div>
+
+    <!-- html2canvas library for PNG export -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+
+    <!-- Inline JavaScript with detailed comments -->
+    <script>
+    document.addEventListener('DOMContentLoaded', () => {
+        // Grab references to all input fields and card elements
+        const projectNameInput = document.getElementById('projectName');
+        const descriptionInput = document.getElementById('description');
+        const timeframeInput = document.getElementById('timeframe');
+        const tasklistInput = document.getElementById('tasklist');
+        const contactInput = document.getElementById('contact');
+        const bgColorInput = document.getElementById('bgColor');
+        const textColorInput = document.getElementById('textColor');
+
+        const roleRowsContainer = document.getElementById('roleRows');
+        const addRoleBtn = document.getElementById('addRoleBtn');
+
+        const cardName = document.getElementById('cardName');
+        const cardDescription = document.getElementById('cardDescription');
+        const cardTimeframe = document.getElementById('cardTimeframe');
+        const cardTasks = document.getElementById('cardTasks');
+        const cardRoles = document.getElementById('cardRoles');
+        const cardContact = document.getElementById('cardContact');
+        const card = document.getElementById('card');
+
+        // Add new role row dynamically when user clicks "Add Role"
+        addRoleBtn.addEventListener('click', () => {
+            const div = document.createElement('div');
+            div.className = 'role-row';
+
+            // Create input for role name
+            const roleInput = document.createElement('input');
+            roleInput.type = 'text';
+            roleInput.placeholder = 'Role name';
+            roleInput.className = 'role-input';
+
+            // Create input for hours estimate
+            const hoursInput = document.createElement('input');
+            hoursInput.type = 'number';
+            hoursInput.placeholder = 'Hours';
+            hoursInput.className = 'hours-input';
+
+            // Append inputs to the row
+            div.appendChild(roleInput);
+            div.appendChild(hoursInput);
+            roleRowsContainer.appendChild(div);
+
+            // Update card whenever these inputs change
+            roleInput.addEventListener('input', updateCard);
+            hoursInput.addEventListener('input', updateCard);
+
+            updateCard();
+        });
+
+        // Main function to update the card preview based on user input
+        function updateCard() {
+            // Update project name
+            cardName.textContent = projectNameInput.value || 'Project Name';
+
+            // Preserve line breaks in description using innerHTML and replace newlines with <br>
+            const descriptionText = descriptionInput.value.trim().replace(/\n/g, '<br>');
+            cardDescription.innerHTML = descriptionText || 'Description goes here...';
+
+            // Timeframe
+            const weeks = timeframeInput.value.trim();
+            cardTimeframe.textContent = weeks ? `${weeks} weeks` : 'Not specified';
+
+            // Update tasks: split by new lines and filter out empty lines
+            const taskArray = tasklistInput.value.trim().split("\n").filter(task => task.trim() !== '');
+            cardTasks.innerHTML = '';
+            taskArray.forEach(task => {
+                const li = document.createElement('li');
+                li.textContent = task;
+                cardTasks.appendChild(li);
+            });
+
+            // Update roles and hours from dynamic rows
+            const roleRows = roleRowsContainer.querySelectorAll('.role-row');
+            cardRoles.innerHTML = '';
+            roleRows.forEach(row => {
+                const roleName = row.querySelector('.role-input').value.trim();
+                const hours = row.querySelector('.hours-input').value.trim();
+                if (roleName) {
+                    const p = document.createElement('p');
+                    p.textContent = hours ? `${roleName}: ${hours} hours` : roleName;
+                    cardRoles.appendChild(p);
+                }
+            });
+
+            // Preserve line breaks in contact info
+            const contactText = contactInput.value.trim().replace(/\n/g, '<br>');
+            cardContact.innerHTML = contactText || 'Your contact info here...';
+
+            // Apply background and text color to the card and all its elements
+            card.style.backgroundColor = bgColorInput.value;
+            card.querySelectorAll('*').forEach(el => {
+                el.style.color = textColorInput.value;
+            });
+        }
+
+        // Add event listeners to all inputs to trigger card update
+        [projectNameInput, descriptionInput, timeframeInput, tasklistInput, contactInput, bgColorInput, textColorInput].forEach(el => {
+            el.addEventListener('input', updateCard);
+        });
+
+        // Initial update to set default values
+        updateCard();
+
+        // Download the card as PNG using html2canvas
+        document.getElementById('downloadBtn').addEventListener('click', () => {
+            html2canvas(card).then(canvas => {
+                const link = document.createElement('a');
+                link.download = 'project-card.png';
+                link.href = canvas.toDataURL();
+                link.click();
+            });
+        });
+    });
+    </script>
+</body>
+</html>
